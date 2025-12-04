@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import useTranscription from "../utils/useTranscription";
 
-function convertFloat32ToInt16(buffer) {
+// Convert Float32 PCM → Int16 PCM (Vosk requirement)
+function convertFloat32ToInt16(buffer: Float32Array): ArrayBuffer {
   let l = buffer.length;
   const result = new Int16Array(l);
 
@@ -11,12 +12,19 @@ function convertFloat32ToInt16(buffer) {
     let s = Math.max(-1, Math.min(1, buffer[i]));
     result[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
   }
-  return result.buffer;
+  return result.buffer; // return ArrayBuffer
 }
+
+// Define the type of recorderRef (it can be either null or an object with stream, processor, audioContext)
+type RecorderRefType = {
+  stream: MediaStream;
+  processor: ScriptProcessorNode;
+  audioContext: AudioContext;
+} | null;
 
 export default function Home() {
   const { partial, finalText, sendAudio } = useTranscription();
-  const recorderRef = useRef(null);
+  const recorderRef = useRef<RecorderRefType>(null); // Set type to RecorderRefType
   const [isRecording, setIsRecording] = useState(false);
 
   const startRecording = async () => {
@@ -36,6 +44,7 @@ export default function Home() {
         sendAudio(pcm16);
       };
 
+      // Assign the values to recorderRef
       recorderRef.current = { stream, processor, audioContext };
       setIsRecording(true);
 
@@ -45,28 +54,27 @@ export default function Home() {
     }
   };
 
-const stopRecording = () => {
-  if (!isRecording) return;
+  const stopRecording = () => {
+    if (!isRecording) return;
 
-  const rec = recorderRef.current;
+    const rec = recorderRef.current;
 
-  try {
-    // Stop the recorder
-    rec.processor.disconnect();
-    rec.audioContext.close();
-    rec.stream.getTracks().forEach((t) => t.stop());
-  } catch (error) {
-    console.error("Error stopping recording:", error);
-  }
+    try {
+      // Stop the recorder
+      rec?.processor.disconnect();
+      rec?.audioContext.close();
+      rec?.stream.getTracks().forEach((t) => t.stop());
+    } catch (error) {
+      console.error("Error stopping recording:", error);
+    }
 
-  // Reset recorder reference
-  recorderRef.current = null;
-  setIsRecording(false);
+    // Reset recorder reference
+    recorderRef.current = null;
+    setIsRecording(false);
 
-  // Reload the page
-  window.location.reload();
-};
-
+    // Reload the page
+    window.location.reload();
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
@@ -76,6 +84,7 @@ const stopRecording = () => {
           🎙️ Real-Time Speech Transcription
         </h1>
 
+        {/* Recording indicator */}
         <div className="flex justify-center mb-6">
           {isRecording ? (
             <span className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full">
@@ -89,7 +98,7 @@ const stopRecording = () => {
           )}
         </div>
 
-
+        {/* Start / Stop Buttons */}
         <div className="flex justify-center gap-4 mb-10">
           <button
             onClick={startRecording}
@@ -114,6 +123,7 @@ const stopRecording = () => {
           </button>
         </div>
 
+        {/* Live Transcription */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">
             🟡 Live Transcription
@@ -123,6 +133,7 @@ const stopRecording = () => {
           </div>
         </div>
 
+        {/* Final Transcription */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">
             🟢 Final Transcript
@@ -132,6 +143,7 @@ const stopRecording = () => {
           </div>
         </div>
 
+        {/* Word Count */}
         {finalText.trim().length > 0 && (
           <div className="text-center mt-4 text-gray-800">
             📝 Word Count:{" "}
