@@ -8,7 +8,7 @@ channels==4.3.2
 charset-normalizer==3.4.4
 colorama==0.4.6
 constantly==23.10.4
-cryptography==46.0.3
+cryptography
 daphne==4.2.1
 Django==5.2.8
 djangorestframework==3.16.1
